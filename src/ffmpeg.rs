@@ -38,37 +38,7 @@ pub fn detect_silence(file_path: PathBuf, silence: i32, minimum_silence_duration
         let total_duration = parse_total_duration(&stderr).unwrap_or(0.0);
         let events: Vec<SilenceEvent> = parse_silence_events(&stderr);
 
-        // Build keep segments between silence events
-        let mut keep_segments = Vec::new();
-        let mut last_end = 0.0;
-
-        // If the first silence does not start at 0, keep from 0 to first silence 
-        if let Some(first_event) = events.first() {
-            if first_event.start > 0.0 {
-            keep_segments.push(KeepSegment {
-                start: 0.0,
-                end: first_event.start,
-            });
-            }
-        }
-
-        for event in &events {
-            if last_end < event.start {
-            keep_segments.push(KeepSegment {
-                start: last_end,
-                end: event.start,
-            });
-            }
-            last_end = event.end;
-        }
-
-        // Add final segment if needed
-        if last_end < total_duration {
-            keep_segments.push(KeepSegment {
-            start: last_end,
-            end: total_duration,
-            });
-        }
+        let keep_segments: Vec<KeepSegment> = filter_segments(&events, total_duration);
 
         // Debug print
         for event in &events {
@@ -82,4 +52,41 @@ pub fn detect_silence(file_path: PathBuf, silence: i32, minimum_silence_duration
         eprintln!("Command failed with status: {}", output.status);
         eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
     }
+}
+
+
+// Filters out the segments of silence from the events and returns the segments to keep
+fn filter_segments(events: &[SilenceEvent], total_duration: f32) -> Vec<KeepSegment> {
+    let mut keep_segments = Vec::new();
+    let mut last_end = 0.0;
+
+    // If the first silence does not start at 0, keep from 0 to first silence 
+    if let Some(first_event) = events.first() {
+        if first_event.start > 0.0 {
+            keep_segments.push(KeepSegment {
+                start: 0.0,
+                end: first_event.start,
+            });
+        }
+    }
+
+    for event in events {
+        if last_end < event.start {
+            keep_segments.push(KeepSegment {
+                start: last_end,
+                end: event.start,
+            });
+        }
+        last_end = event.end;
+    }
+
+    // Add final segment if needed
+    if last_end < total_duration {
+        keep_segments.push(KeepSegment {
+            start: last_end,
+            end: total_duration,
+        });
+    }
+
+    keep_segments
 }
