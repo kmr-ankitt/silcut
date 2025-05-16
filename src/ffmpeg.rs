@@ -1,4 +1,5 @@
-use std::{path::PathBuf, process::Command};
+use std::{fs::File, path::PathBuf, process::Command};
+use std::io::Write;
 
 use crate::utils::{format_time, parse_silence_events, parse_total_duration};
 
@@ -99,19 +100,23 @@ fn filter_segments(events: &[SilenceEvent], total_duration: f32) -> Vec<KeepSegm
 // and splits the input file into multiple files
 // which will be merged in merge_segments function
 fn trim_silence(file_path: PathBuf, out_path: PathBuf, keep_segments: Vec<KeepSegment>) {
+
+    // Create the output directory if it doesn't exist
+    if !out_path.exists() {
+        if let Err(e) = std::fs::create_dir_all(&out_path) {
+        eprintln!("Failed to create output directory {}: {}", out_path.display(), e);
+        }
+    }
+
+    let mut concat_list_path = out_path.join("concat_list.txt");
+    let mut concat_file = File::create(&concat_list_path).expect("Failed to create concat list file");
+
     for seg in &keep_segments {
 
         // Convert start and end to HH:MM:SS.mmm format
         let start = format_time(seg.start);
         let end = format_time(seg.end);
 
-        // Create the output directory if it doesn't exist
-        if !out_path.exists() {
-            if let Err(e) = std::fs::create_dir_all(&out_path) {
-            eprintln!("Failed to create output directory {}: {}", out_path.display(), e);
-            continue;
-            }
-        }
 
         // Get filename and file extension as this application supports both audio and video files
         let filename: std::borrow::Cow<'_, str> = file_path
@@ -120,7 +125,11 @@ fn trim_silence(file_path: PathBuf, out_path: PathBuf, keep_segments: Vec<KeepSe
             .to_string_lossy()
             .replace(' ', "")
             .into();
-        let extension: std::borrow::Cow<'_, str> = file_path.extension().map(|e| e.to_string_lossy()).unwrap_or_else(|| std::borrow::Cow::Borrowed("mp3"));
+        let extension: std::borrow::Cow<'_, str> = file_path
+            .extension()
+            .map(|e| e.to_string_lossy())
+            .filter(|ext| ext.eq_ignore_ascii_case("mp3") || ext.eq_ignore_ascii_case("mp4"))
+            .unwrap_or_else(|| std::borrow::Cow::Borrowed("mp3"));
         let output_file = format!(
             "{}/{}_{}_{}.{}",
             out_path.display(),
@@ -130,6 +139,7 @@ fn trim_silence(file_path: PathBuf, out_path: PathBuf, keep_segments: Vec<KeepSe
             extension
         );
 
+ 
         // FFmpeg command to trim the each segment we want to keep
         let output = Command::new("ffmpeg")
             .arg("-ss")
@@ -149,9 +159,50 @@ fn trim_silence(file_path: PathBuf, out_path: PathBuf, keep_segments: Vec<KeepSe
                 "Trimmed segment: {} - {} to {}",
                 seg.start, seg.end, output_file
             );
+            let abs_path = std::fs::canonicalize(&output_file).expect("Failed to get absolute path");
+            writeln!(concat_file, "file '{}'", abs_path.display()).expect("Failed to write to concat list");
         } else {
             eprintln!("Failed to trim segment: {} - {}", seg.start, seg.end);
             eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
         }
+    }
+    merge_segments(file_path, &out_path);
+}
+
+// Merges all the segments into a single file 
+fn merge_segments(file_path: PathBuf,out_path: &PathBuf) {
+    let concat_list_path = out_path.join("concat_list.txt");
+    let filename: std::borrow::Cow<'_, str> = file_path
+        .file_stem()
+        .unwrap()
+        .to_string_lossy()
+        .replace(' ', "")
+        .into();
+    let extension: std::borrow::Cow<'_, str> = file_path
+        .extension()
+        .map(|e| e.to_string_lossy())
+        .filter(|ext| ext.eq_ignore_ascii_case("mp3") || ext.eq_ignore_ascii_case("mp4"))
+        .unwrap_or_else(|| std::borrow::Cow::Borrowed("mp3"));
+
+    let final_output = out_path.join(format!("{}.{}", filename, extension));
+
+    let output = Command::new("ffmpeg")
+        .arg("-f")
+        .arg("concat")
+        .arg("-safe")
+        .arg("0")
+        .arg("-i")
+        .arg(&concat_list_path)
+        .arg("-c")
+        .arg("copy")
+        .arg(&final_output)
+        .output()
+        .expect("Failed to merge segments");
+
+    if output.status.success() {
+        println!("Merged all segments successfully into {}", final_output.display());
+    } else {
+        eprintln!("Failed to merge segments.");
+        eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
     }
 }
