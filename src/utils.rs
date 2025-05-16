@@ -1,3 +1,5 @@
+use std::{fs, path::PathBuf};
+
 use regex::Regex;
 
 use crate::ffmpeg::SilenceEvent;
@@ -16,12 +18,14 @@ pub fn parse_silence_events(output: &str) -> Vec<SilenceEvent> {
         }
 
         if let Some(cap) = re_end.captures(line) {
-            if let (Some(start), Ok(end), Ok(duration)) = (
-                current_start,
-                cap[1].parse::<f32>(),
-                cap[2].parse::<f32>(),
-            ) {
-                events.push(SilenceEvent { start, end, duration });
+            if let (Some(start), Ok(end), Ok(duration)) =
+                (current_start, cap[1].parse::<f32>(), cap[2].parse::<f32>())
+            {
+                events.push(SilenceEvent {
+                    start,
+                    end,
+                    duration,
+                });
                 current_start = None;
             }
         }
@@ -56,4 +60,44 @@ pub fn format_time(secs: f32) -> String {
     let mins = (total_secs / 60) % 60;
     let hours = total_secs / 3600;
     format!("{:02}:{:02}:{:02}.{:03}", hours, mins, secs, millis)
+}
+
+// Cleans up temporary files in the output directory
+pub fn cleanup_temp_files(out_path: std::path::PathBuf, final_output: PathBuf) {
+    let final_output = match final_output.canonicalize() {
+        Ok(path) => path,
+        Err(e) => {
+            eprintln!("Failed to resolve final output path: {}", e);
+            return;
+        }
+    };
+
+    let entries = match fs::read_dir(&out_path) {
+        Ok(entries) => entries,
+        Err(e) => {
+            eprintln!(
+                "Failed to read output directory {}: {}",
+                out_path.display(),
+                e
+            );
+            return;
+        }
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_file() {
+            match path.canonicalize() {
+                Ok(p) if p == final_output => continue, // skip the final output
+                Ok(p) => {
+                    if let Err(e) = fs::remove_file(&p) {
+                        eprintln!("Failed to delete {}: {}", p.display(), e);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to resolve path {}: {}", path.display(), e);
+                }
+            }
+        }
+    }
 }

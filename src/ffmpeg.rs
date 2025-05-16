@@ -1,7 +1,7 @@
 use std::{fs::File, path::PathBuf, process::Command};
 use std::io::Write;
 
-use crate::utils::{format_time, parse_silence_events, parse_total_duration};
+use crate::utils::{cleanup_temp_files, format_time, parse_silence_events, parse_total_duration};
 
 // This stores the time frames of silence in the file
 #[derive(Debug)]
@@ -169,7 +169,8 @@ fn trim_silence(file_path: PathBuf, out_path: PathBuf, keep_segments: Vec<KeepSe
     merge_segments(file_path, &out_path);
 }
 
-// Merges all the segments into a single file 
+// Merges all the segments into a single file and deletes the temporary files 
+// created during the trimming process
 fn merge_segments(file_path: PathBuf,out_path: &PathBuf) {
     let concat_list_path = out_path.join("concat_list.txt");
     let filename: std::borrow::Cow<'_, str> = file_path
@@ -201,6 +202,7 @@ fn merge_segments(file_path: PathBuf,out_path: &PathBuf) {
 
     if output.status.success() {
         println!("Merged all segments successfully into {}", final_output.display());
+        cleanup_temp_files(out_path.clone(), final_output);
     } else {
         eprintln!("Failed to merge segments.");
         eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
