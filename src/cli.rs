@@ -16,11 +16,12 @@ pub struct Args {
     out_path: Option<PathBuf>,
 
     // How quiet it have to be to starting parsing
-    #[arg(short = 's', long, default_value_t = -30)]
+    // it can be negative value, for example -30
+    #[arg( short = 's', long, default_value_t = -30, allow_hyphen_values = true)]
     pub silence: i32,
 
     // How much long duration of silence to be considered
-    #[arg(short = 'd', long, default_value_t = 0.5)]
+    #[arg(short = 'd', long, default_value_t = 0.5, allow_hyphen_values = true)]
     pub minimum_silence_duration: f32,
 }
 
