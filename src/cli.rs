@@ -33,5 +33,5 @@ pub fn start_silcut() {
     let silence = args.silence;
     let minimum_silence_duration = args.minimum_silence_duration;
 
-    detect_silence(file_path, silence, minimum_silence_duration);
+    detect_silence(file_path, out_path, silence, minimum_silence_duration);
 }

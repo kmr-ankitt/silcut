@@ -46,3 +46,14 @@ pub fn parse_total_duration(stderr: &str) -> Option<f32> {
     }
     None
 }
+
+// Convert times in seconds format to HH:MM:SS.mmm format
+pub fn format_time(secs: f32) -> String {
+    let total_millis = (secs * 1000.0).round() as u64;
+    let millis = total_millis % 1000;
+    let total_secs = total_millis / 1000;
+    let secs = total_secs % 60;
+    let mins = (total_secs / 60) % 60;
+    let hours = total_secs / 3600;
+    format!("{:02}:{:02}:{:02}.{:03}", hours, mins, secs, millis)
+}
