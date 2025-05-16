@@ -20,7 +20,13 @@
 
 ## Installation
 
-### Option 1: Install from source (requires Rust & FFmpeg)
+### Install using cargo
+
+```bash
+cargo install silcut
+```
+
+### Install from source (requires Rust & FFmpeg)
 
 ```bash
 git clone https://github.com/kmr-ankitt/silcut.git
@@ -34,13 +40,8 @@ Then place the binary into your local bin:
 sudo cp ./target/release/silcut /usr/local/bin/
 ```
 
-Then run:
 
-```bash
-silcut --input path/to/file.mp3 --output output_dir
-```
-
-### Option 2: Prebuilt binary
+### Prebuilt binary
 
 Download the binary from [Releases](https://github.com/kmr-ankitt/silcut/releases).
 
