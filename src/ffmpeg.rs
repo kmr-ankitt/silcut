@@ -108,7 +108,7 @@ fn trim_silence(file_path: PathBuf, out_path: PathBuf, keep_segments: Vec<KeepSe
         }
     }
 
-    let mut concat_list_path = out_path.join("concat_list.txt");
+    let concat_list_path = out_path.join("concat_list.txt");
     let mut concat_file = File::create(&concat_list_path).expect("Failed to create concat list file");
 
     for seg in &keep_segments {

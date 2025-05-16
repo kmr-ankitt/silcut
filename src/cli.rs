@@ -1,6 +1,6 @@
 use std::path::{self, PathBuf};
 
-use crate::{cli, ffmpeg::detect_silence};
+use crate::{ffmpeg::detect_silence};
 use clap::Parser;
 
 // Cli arguments
