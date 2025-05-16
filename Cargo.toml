@@ -2,6 +2,13 @@
 name = "silcut"
 version = "0.1.0"
 edition = "2024"
+authors = ["Ankit Kumar Sahu <your-email@example.com>"]
+description = "A CLI tool to trim silences from audio/video using FFmpeg."
+license = "MIT"
+repository = "https://github.com/kmr-ankitt/silcut"
+homepage = "https://github.com/kmr-ankitt/silcut"
+readme = "README.md"
+documentation = "https://docs.rs/silcut"
 
 [dependencies]
 clap = { version = "4.5.38", features = ["derive"] }
