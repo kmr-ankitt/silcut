@@ -36,11 +36,6 @@ cargo build --release
 
 Then place the binary into your local bin:
 
-```bash
-sudo cp ./target/release/silcut /usr/local/bin/
-```
-
-
 ### Prebuilt binary
 
 Download the binary from [Releases](https://github.com/kmr-ankitt/silcut/releases).
